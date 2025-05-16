@@ -4,7 +4,10 @@
     {{ answer }}
     {% if sources %}
       <div class="mt-2 text-xs text-gray-500">
-        Sources: {{ sources | join(', ') }}
+        Sources:<br>
+        {% for src in sources %}
+          {{ src }}{% if not loop.last %}<br>{% endif %}
+        {% endfor %}
       </div>
     {% endif %}
   </div>

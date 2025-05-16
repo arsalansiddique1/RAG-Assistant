@@ -64,12 +64,13 @@ def upload():
     file_path = os.path.join(app.config["UPLOAD_FOLDER"], filename)
     file.save(file_path)
 
-    # Extract text chunks and add to vector store
     chunks = load_and_chunk_pdf(file_path)
-    vectorstore.add_texts(
-        chunks,
-        metadatas=[{"source": filename}] * len(chunks)
-    )
+    # Build per-chunk metadata with an incrementing chunk_id
+    metadatas = [
+        {"source": filename, "chunk_id": idx + 1}
+        for idx in range(len(chunks))
+    ]
+    vectorstore.add_texts(chunks, metadatas=metadatas)
 
     return jsonify({"message": f"Uploaded and processed {filename}."}), 200
 
@@ -118,9 +119,12 @@ def chat():
 
     session['chat_history'] = chat_history
 
-    # Extract sources
+    # Extract docs & build a display-friendly sources list with chunk_id
     docs = result.get("context") or result.get("source_documents", [])
-    sources = [doc.metadata.get("source") for doc in docs]
+    sources = [
+        f"{doc.metadata.get('source')} chunk:{doc.metadata.get('chunk_id')}"
+        for doc in docs
+    ]
 
     # HTMX fallback
     if request.headers.get("HX-Request"):
