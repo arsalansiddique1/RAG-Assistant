@@ -69,51 +69,46 @@
 
   <script>
     document.addEventListener('DOMContentLoaded', () => {
-      const fileInput = document.getElementById('file-input');
-      const fileNameSpan = document.getElementById('file-name');
-      const sendButton = document.getElementById('send-button');
+      const fileInput     = document.getElementById('file-input');
+      const fileNameSpan  = document.getElementById('file-name');
+      const alertDiv      = document.getElementById('alert');
+      const langSelect    = document.getElementById('language');
+      const langInput     = document.getElementById('lang-input');
+      const chatDiv       = document.getElementById('chat');
       const questionInput = document.getElementById('question-input');
-      const chatForm = document.getElementById('chat-form');
-      const chatDiv = document.getElementById('chat');
+      const sendButton    = document.getElementById('send-button');
+      const chatForm      = document.getElementById('chat-form');
 
-      // Ensure Send is disabled initially
-      sendButton.disabled = true;
-
-      // Validate PDF upload client-side and size limit
+      // PDF & size validation
       fileInput.addEventListener('change', e => {
-        const file = e.target.files[0];
-        if (file) {
-          const ext = file.name.split('.').pop().toLowerCase();
-          if (ext !== 'pdf') {
-            alert('Only PDF files are allowed.');
-            e.target.value = '';
-            fileNameSpan.innerText = '';
-            return;
-          }
-          const maxSize = 50 * 1024 * 1024; // 50 MB
-          if (file.size > maxSize) {
-            alert('File size must be 50 MB or less.');
-            e.target.value = '';
-            fileNameSpan.innerText = '';
-            return;
-          }
-          fileNameSpan.innerText = file.name;
+        const f = e.target.files[0];
+        fileNameSpan.innerText = '';
+        alertDiv.innerText    = '';
+        if (!f) return;
+        const ext    = f.name.split('.').pop().toLowerCase();
+        const sizeMB = f.size / (1024*1024);
+        if (ext !== 'pdf') {
+          alert('Only PDF files are allowed.');
+          e.target.value = '';
+        } else if (sizeMB > 50) {
+          alert('File size must be 50 MB or less.');
+          e.target.value = '';
         } else {
-          fileNameSpan.innerText = '';
+          fileNameSpan.innerText = f.name;
         }
       });
 
       // Sync language selector
-      document.getElementById('language').addEventListener('change', e => {
-        document.getElementById('lang-input').value = e.target.value;
+      langSelect.addEventListener('change', e => {
+        langInput.value = e.target.value;
       });
 
-      // Enable/disable Send button based on input
+      // Enable Send button only when input has text
       questionInput.addEventListener('input', () => {
         sendButton.disabled = questionInput.value.trim() === '';
       });
 
-      // Intercept submit to append user bubble
+      // Append user bubble before HTMX request
       chatForm.addEventListener('submit', e => {
         const text = questionInput.value.trim();
         if (!text) {
@@ -128,10 +123,9 @@
           </div>
         `);
         chatDiv.scrollTop = chatDiv.scrollHeight;
-        // Let HTMX handle submission
       });
 
-      // Spinner: AI is typing…
+      // Spinner before HTMX swaps in the assistant
       document.body.addEventListener('htmx:beforeRequest', evt => {
         if (evt.detail.elt.id === 'chat-form') {
           chatDiv.insertAdjacentHTML('beforeend', `
@@ -144,11 +138,54 @@
         }
       });
 
-      // After HTMX swap: remove spinner and clear input
+      // After HTMX swap: typewriter effect but preserve sources markup
       document.body.addEventListener('htmx:afterSwap', evt => {
         if (evt.detail.target.id === 'chat') {
+          // 1) Remove loader
           const loader = document.getElementById('loader');
           if (loader) loader.remove();
+
+          // 2) Find the last assistant bubble
+          const bubbles = Array.from(chatDiv.querySelectorAll('div.bg-gray-200'));
+          if (!bubbles.length) return;
+          const bubble = bubbles[bubbles.length - 1];
+
+          // 3) Separate answer HTML vs. sources HTML
+          const rawHTML     = bubble.innerHTML;
+          const lastDivIdx  = rawHTML.lastIndexOf('<div');
+          let answerHTML, sourcesHTML;
+          if (lastDivIdx !== -1) {
+            answerHTML  = rawHTML.slice(0, lastDivIdx);
+            sourcesHTML = rawHTML.slice(lastDivIdx);
+          } else {
+            answerHTML  = rawHTML;
+            sourcesHTML = '';
+          }
+
+          // 4) Extract plain text from answerHTML
+          const tmp = document.createElement('div');
+          tmp.innerHTML = answerHTML;
+          const fullText = tmp.textContent  // preserves spacing
+            .trimStart();
+          // 5) Clear bubble and re-insert a typed-answer container + sources
+          bubble.innerHTML = `
+            <div class="typed-answer" style="white-space: pre-wrap;"></div>
+            ${sourcesHTML}
+          `;
+          const answerContainer = bubble.querySelector('.typed-answer');
+
+          // 6) Typewriter effect
+          let i = 0;
+          const timer = setInterval(() => {
+            if (i < fullText.length) {
+              answerContainer.textContent += fullText[i++];
+              chatDiv.scrollTop = chatDiv.scrollHeight;
+            } else {
+              clearInterval(timer);
+            }
+          }, 20);
+
+          // 7) Reset input
           questionInput.value = '';
           sendButton.disabled = true;
         }
