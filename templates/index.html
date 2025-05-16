@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>RAG Assistant</title>
+  <!-- Tailwind via CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- HTMX -->
+  <script src="https://unpkg.com/htmx.org@1.9.2"></script>
+</head>
+<body class="bg-gray-200 flex items-center justify-center h-screen p-4">
+  <!-- Outer container -->
+  <div class="w-full max-w-3xl bg-white rounded-2xl shadow-lg flex flex-col h-full overflow-hidden">
+    
+    <!-- Header: PDF upload + language selector -->
+    <div class="px-6 py-4 flex items-center space-x-2 border-b">
+      <form id="upload-form"
+            hx-post="/upload"
+            hx-trigger="change"
+            hx-target="#alert"
+            hx-swap="innerHTML"
+            enctype="multipart/form-data"
+            class="flex items-center space-x-2">
+        <label class="cursor-pointer bg-blue-600 text-white px-3 py-1 rounded-md hover:bg-blue-700">
+          Upload PDF
+          <input type="file" name="file" accept=".pdf" class="hidden" id="file-input"/>
+        </label>
+        <span id="file-name" class="text-sm text-gray-700 truncate"></span>
+      </form>
+      <select id="language"
+              class="ml-auto border rounded-md px-2 py-1 text-sm focus:ring focus:ring-blue-300">
+        <option value="en">English</option>
+        <option value="fr">French</option>
+        <option value="es">Spanish</option>
+      </select>
+    </div>
+    <div id="alert" class="px-6 py-2 text-green-600 text-sm"></div>
+
+    <!-- Chat history -->
+    <div id="chat"
+         class="flex-1 px-6 py-4 space-y-4 overflow-y-auto bg-gray-50 min-h-0">
+      <!-- Chat bubbles inserted here -->
+    </div>
+
+    <!-- Input area -->
+    <form id="chat-form"
+          class="px-6 py-4 flex items-center border-t"
+          hx-post="/chat"
+          hx-trigger="submit"
+          hx-target="#chat"
+          hx-swap="beforeend">
+      <input type="hidden" name="language" id="lang-input" value="en"/>
+      <input id="question-input"
+             name="question"
+             type="text"
+             required
+             class="flex-1 border border-gray-300 rounded-full px-4 py-2 focus:outline-none focus:ring focus:ring-blue-300"
+             placeholder="Ask a question…"
+             autocomplete="off"/>
+      <button type="submit"
+              id="send-button"
+              disabled
+              class="ml-2 bg-blue-600 text-white px-4 py-2 rounded-full hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed">
+        Send
+      </button>
+    </form>
+  </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const fileInput = document.getElementById('file-input');
+      const fileNameSpan = document.getElementById('file-name');
+      const sendButton = document.getElementById('send-button');
+      const questionInput = document.getElementById('question-input');
+      const chatForm = document.getElementById('chat-form');
+      const chatDiv = document.getElementById('chat');
+
+      // Ensure Send is disabled initially
+      sendButton.disabled = true;
+
+      // Validate PDF upload client-side and size limit
+      fileInput.addEventListener('change', e => {
+        const file = e.target.files[0];
+        if (file) {
+          const ext = file.name.split('.').pop().toLowerCase();
+          if (ext !== 'pdf') {
+            alert('Only PDF files are allowed.');
+            e.target.value = '';
+            fileNameSpan.innerText = '';
+            return;
+          }
+          const maxSize = 50 * 1024 * 1024; // 50 MB
+          if (file.size > maxSize) {
+            alert('File size must be 50 MB or less.');
+            e.target.value = '';
+            fileNameSpan.innerText = '';
+            return;
+          }
+          fileNameSpan.innerText = file.name;
+        } else {
+          fileNameSpan.innerText = '';
+        }
+      });
+
+      // Sync language selector
+      document.getElementById('language').addEventListener('change', e => {
+        document.getElementById('lang-input').value = e.target.value;
+      });
+
+      // Enable/disable Send button based on input
+      questionInput.addEventListener('input', () => {
+        sendButton.disabled = questionInput.value.trim() === '';
+      });
+
+      // Intercept submit to append user bubble
+      chatForm.addEventListener('submit', e => {
+        const text = questionInput.value.trim();
+        if (!text) {
+          e.preventDefault();
+          return;
+        }
+        chatDiv.insertAdjacentHTML('beforeend', `
+          <div class="flex justify-end">
+            <div class="bg-blue-600 text-white px-4 py-2 rounded-2xl max-w-[80%] break-words">
+              ${text}
+            </div>
+          </div>
+        `);
+        chatDiv.scrollTop = chatDiv.scrollHeight;
+        // Let HTMX handle submission
+      });
+
+      // Spinner: AI is typing…
+      document.body.addEventListener('htmx:beforeRequest', evt => {
+        if (evt.detail.elt.id === 'chat-form') {
+          chatDiv.insertAdjacentHTML('beforeend', `
+            <div id="loader" class="flex items-center space-x-2">
+              <div class="w-5 h-5 border-4 border-gray-300 border-t-blue-600 rounded-full animate-spin"></div>
+              <span class="text-gray-600 text-sm">AI is typing…</span>
+            </div>
+          `);
+          chatDiv.scrollTop = chatDiv.scrollHeight;
+        }
+      });
+
+      // After HTMX swap: remove spinner and clear input
+      document.body.addEventListener('htmx:afterSwap', evt => {
+        if (evt.detail.target.id === 'chat') {
+          const loader = document.getElementById('loader');
+          if (loader) loader.remove();
+          questionInput.value = '';
+          sendButton.disabled = true;
+        }
+      });
+    });
+  </script>
+</body>
+</html>
