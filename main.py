@@ -39,7 +39,7 @@ llm = ChatOpenAI(
     temperature=0.0
 )
 
-retriever = vectorstore.as_retriever(search_type = "mmr", search_kwargs={"k": 5})
+retriever = vectorstore.as_retriever(search_type = "similarity", search_kwargs={"k": 5})
 qa_chain = get_qa_chain(llm, retriever)
 
 

@@ -18,3 +18,7 @@ langchain-openai = "^0.3.16"
 pytest = "^8.3.5"
 pypdf = "^5.5.0"
 fastembed = "^0.7.0"
+
+[tool.poetry.group.dev.dependencies]
+ipykernel = "^6.29.5"
+
