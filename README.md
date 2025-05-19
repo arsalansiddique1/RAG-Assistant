@@ -29,7 +29,7 @@
      OPENAI_API_KEY=<your_openai_api_key>
      FLASK_SECRET_KEY=<a_random_session_secret>
      ```
-   * Poetry will automatically load these when you run commands via `poetry run`.
+   * Poetry will automatically load these when you run commands via `poetry run --no-root`.
 
 5. **Run the application**
 
