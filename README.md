@@ -18,7 +18,7 @@
 3. **Install dependencies**
 
    ```bash
-   poetry install
+   poetry install --no-root
    ```
 
 4. **Configure environment variables**
