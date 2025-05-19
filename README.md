@@ -51,6 +51,7 @@ Code meets all requirements stated in spec, including all HTMX enchancements.
 
   1. `/upload` for PDF ingestion and vector store indexing
   2. `/chat` for RAG-based Q\&A
+  3. `/clear` additional feature for clearing session history, uploads and vector db if page is closed
 * **RAG Chain**: Built with LangChain v0.3+
 
   * *History-aware retrieval*: Condenses follow-up questions into standalone queries

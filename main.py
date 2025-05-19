@@ -1,4 +1,5 @@
 import os
+import shutil
 from flask import Flask, request, render_template, jsonify, session
 from werkzeug.utils import secure_filename
 from langchain_openai.chat_models import ChatOpenAI
@@ -41,6 +42,33 @@ llm = ChatOpenAI(
 
 retriever = vectorstore.as_retriever(search_type = "similarity", search_kwargs={"k": 5})
 qa_chain = get_qa_chain(llm, retriever)
+
+def clear_state():
+    global vectorstore, retriever, qa_chain
+    # 1) wipe the Flask session
+    session.clear()
+    # 2) delete & recreate the in-memory Qdrant collection
+    vectorstore.client.delete_collection(collection_name="rag_collection")
+    # 2) re-initialize the vector store, retriever and QA chain
+    vectorstore = init_vector_store()
+    retriever = vectorstore.as_retriever(search_type = "similarity", search_kwargs={"k": 5})
+    qa_chain = get_qa_chain(llm, retriever)
+    # 3) clear out the uploads folder
+    for fname in os.listdir(UPLOAD_FOLDER):
+        path = os.path.join(UPLOAD_FOLDER, fname)
+        try:
+            if os.path.isfile(path) or os.path.islink(path):
+                os.remove(path)
+            elif os.path.isdir(path):
+                shutil.rmtree(path)
+        except Exception:
+            pass
+    
+@app.route("/clear", methods=["POST"])
+def clear_endpoint():
+    clear_state()
+    # 204 No Content: indicates we’ve done the work but there’s no body
+    return ("", 204)
 
 
 @app.route("/")

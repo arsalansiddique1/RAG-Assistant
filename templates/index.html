@@ -191,6 +191,10 @@
         }
       });
     });
+    window.addEventListener("beforeunload", () => {
+    // navigator.sendBeacon is perfect for "fire-and-forget" on unload
+    navigator.sendBeacon("/clear");
+    });
   </script>
 </body>
 </html>
