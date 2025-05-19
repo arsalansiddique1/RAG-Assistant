@@ -165,7 +165,8 @@
           // 4) Extract plain text from answerHTML
           const tmp = document.createElement('div');
           tmp.innerHTML = answerHTML;
-          const fullText = tmp.textContent.trimStart();  // preserves spacing
+          const fullText = tmp.textContent.trimStart()  // preserves spacing
+          .trimEnd(); 
 
           // 5) Clear bubble and re-insert a typed-answer container + sources
           bubble.innerHTML = `

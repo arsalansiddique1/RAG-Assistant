@@ -78,6 +78,7 @@ With more time, one could:
 * **Data Ingestion**: Improve data ingestion capability by detecting if pdf is scanned and having OCR model to detect text layer when processing docs.
 * **Chunking**: Section-wise chunking of structured documents would significantly improve retrieval accuracy. This can be done by using aryn API or alternatively converting to markdown via docling, then identifying section start line numbers through llm calls.
 * **Retrieval**: Can be improved vastly by carrying out a multi-stage hybrid search. i.e. generate metadata summaries for each chunk using LLM calls, store in Qdrant. For any new query, search through chunk summaries then use chunk summaries to point to relevant chunks.
+* **Sources/citations**: By using section-wise chunking, chunks can have header metadata which provides useful context for the user to know exactly where in the document the information was extracted from.
 * **True Token-Level Streaming**: Perform retrieval up front and then call `llm.stream(...)` over the combined context for genuine low-latency output
 * **Server-Side Session Store**: Migrate to Redis or filesystem sessions (via Flask-Session) to support longer histories and multi-user
 * **Authentication & Multi-User**: Add user login, per-user history, and access controls
