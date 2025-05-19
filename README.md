@@ -86,3 +86,5 @@ With more time, one could:
 * **UI Enhancements**: Markdown rendering, code snippet highlighting, conversation export, and a clear-history button
 * **Latency vs Performance tradeoff**: Adding in contextual chunking will increase latency however will significantly improve RAG retrieval accuracy. Useful for when RAG is for a highly-complex niche task that requires high accuracy. The point mentioned above for retrieval would also signifcantly improve RAG accuracy for niche tasks. These improvements work well in cases where latency isn't the main priority.
 
+Docling wasn't utilised due to it's pdf to md pipeline introducing significant latency. With docx to md pipeline, docling's latency is far more reasonable.
+
